@@ -37,3 +37,4 @@ settings.json
 
 # Local .terraform.lock.hcl file
 .terraform.lock.hcl
+venv/
