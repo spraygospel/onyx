@@ -6,7 +6,11 @@ from contextlib import asynccontextmanager
 from typing import Any
 from typing import cast
 
+from dotenv import load_dotenv
 import sentry_sdk
+
+# Load development environment variables
+load_dotenv(".env.dev")
 import uvicorn
 from fastapi import APIRouter
 from fastapi import FastAPI
