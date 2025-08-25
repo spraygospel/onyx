@@ -240,6 +240,14 @@ def get_groq_provider_template() -> ProviderTemplate:
                 required=True,
                 description="Get your API key from console.groq.com",
                 validation=r"^gsk_[a-zA-Z0-9]+$"
+            ),
+            "api_base": FieldConfig(
+                type="url",
+                label="API Base URL (Optional)",
+                placeholder="https://api.groq.com/openai/v1",
+                required=False,
+                default_value="https://api.groq.com/openai/v1",
+                description="Base URL for Groq API (default is fine for most users)"
             )
         },
         model_fetching="dynamic",
@@ -247,7 +255,7 @@ def get_groq_provider_template() -> ProviderTemplate:
         model_list_cache_ttl=3600,  # 1 hour for cloud provider
         popular_models=[
             "llama-3.1-8b-instant",
-            "llama-3.1-70b-versatile",
+            "llama-3.3-70b-versatile",
             "mixtral-8x7b-32768",
             "gemma2-9b-it"
         ],
@@ -304,6 +312,14 @@ def get_together_ai_provider_template() -> ProviderTemplate:
                 placeholder="...",
                 required=True,
                 description="Get your API key from api.together.xyz"
+            ),
+            "api_base": FieldConfig(
+                type="url",
+                label="API Base URL (Optional)",
+                placeholder="https://api.together.xyz/v1",
+                required=False,
+                default_value="https://api.together.xyz/v1",
+                description="Base URL for Together AI API (default is fine for most users)"
             )
         },
         model_fetching="dynamic",
@@ -337,6 +353,14 @@ def get_fireworks_ai_provider_template() -> ProviderTemplate:
                 required=True,
                 description="Get your API key from fireworks.ai",
                 validation=r"^fw_[a-zA-Z0-9]+$"
+            ),
+            "api_base": FieldConfig(
+                type="url",
+                label="API Base URL (Optional)",
+                placeholder="https://api.fireworks.ai/inference/v1",
+                required=False,
+                default_value="https://api.fireworks.ai/inference/v1",
+                description="Base URL for Fireworks AI API (default is fine for most users)"
             )
         },
         model_fetching="dynamic",

@@ -56,7 +56,7 @@ export class UrlBuilder {
   }
 }
 
-export async function fetchSS(url: string, options?: RequestInit) {
+export async function fetchSS(url: string, options?: RequestInit): Promise<Response> {
   const init = options || {
     credentials: "include",
     cache: "no-store",

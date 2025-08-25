@@ -43,6 +43,9 @@ class WellKnownLLMProviderDescriptor(BaseModel):
     deployment_name_required: bool = False
     # set for providers like Azure, which support a single model per deployment.
     single_model_supported: bool = False
+    # Added for new provider templates that need dynamic model fetching
+    model_endpoint: str | None = None
+    litellm_provider_name: str | None = None
 
 
 OPENAI_PROVIDER_NAME = "openai"
@@ -313,3 +316,122 @@ def fetch_model_configurations_for_provider(
         )
         for model_name in fetch_models_for_provider(provider_name)
     ]
+
+
+# ===== PROVIDER TEMPLATE INTEGRATION =====
+# Phase 5: Integration with Provider Template System
+
+def convert_provider_template_to_descriptor(template) -> WellKnownLLMProviderDescriptor:
+    """
+    Convert a ProviderTemplate to WellKnownLLMProviderDescriptor for backward compatibility.
+    This allows new provider templates to work with existing UI and API.
+    """
+    from onyx.llm.provider_templates import ProviderTemplate, FieldConfig
+    
+    # Convert FieldConfig to CustomConfigKey
+    custom_config_keys = []
+    for field_name, field_config in template.config_schema.items():
+        custom_key = CustomConfigKey(
+            name=field_name,
+            display_name=field_config.label,
+            description=field_config.description,
+            is_required=field_config.required,
+            is_secret=(field_config.type == "password"),
+            key_type=CustomConfigKeyType.FILE_INPUT if field_config.type == "file" else CustomConfigKeyType.TEXT_INPUT,
+            default_value=field_config.default_value
+        )
+        custom_config_keys.append(custom_key)
+    
+    # For provider templates, we should NOT set the generic required flags
+    # since all configuration is handled through custom_config_keys
+    # This prevents duplicate fields in the UI
+    api_key_required = False
+    api_base_required = False
+    
+    # Use popular models as default models
+    default_model = template.popular_models[0] if template.popular_models else None
+    default_fast_model = template.popular_models[1] if template.popular_models and len(template.popular_models) > 1 else default_model
+    
+    return WellKnownLLMProviderDescriptor(
+        name=template.id,
+        display_name=template.name,
+        api_key_required=api_key_required,
+        api_base_required=api_base_required,
+        api_version_required=False,  # None of our templates require API version yet
+        custom_config_keys=custom_config_keys,
+        model_configurations=fetch_model_configurations_for_provider_template(template),
+        default_model=default_model,
+        default_fast_model=default_fast_model,
+        deployment_name_required=False,
+        single_model_supported=False,
+        # Include the new fields needed for dynamic model fetching
+        model_endpoint=template.model_endpoint,
+        litellm_provider_name=template.litellm_provider_name,
+    )
+
+
+def fetch_model_configurations_for_provider_template(template) -> list[ModelConfigurationView]:
+    """
+    Create model configurations from a provider template's popular models.
+    This bridges between our dynamic template system and the existing model config system.
+    """
+    from onyx.llm.model_fetcher import ModelFetcher
+    
+    if not template.popular_models:
+        return []
+    
+    # For dynamic providers, try to fetch latest models
+    if template.model_fetching == "dynamic":
+        try:
+            fetcher = ModelFetcher()
+            # Note: This would be async in real usage, for now we use popular_models as fallback
+            dynamic_models = template.popular_models  # Fallback to popular_models for now
+        except Exception:
+            dynamic_models = template.popular_models
+    else:
+        dynamic_models = template.popular_models
+    
+    return [
+        ModelConfigurationView(
+            name=model_name,
+            is_visible=True,  # All template models are visible by default
+            max_input_tokens=None,  # Could be enhanced per-model later
+            supports_image_input=model_supports_image_input(
+                model_name=model_name,
+                model_provider=template.litellm_provider_name,
+            ),
+        )
+        for model_name in dynamic_models
+    ]
+
+
+def fetch_provider_templates_as_descriptors() -> list[WellKnownLLMProviderDescriptor]:
+    """
+    Get all provider templates converted to WellKnownLLMProviderDescriptor format.
+    This allows the existing UI to seamlessly work with new provider templates.
+    """
+    from onyx.llm.provider_templates import get_provider_templates
+    
+    # Get all our new provider templates
+    templates = get_provider_templates()
+    
+    # Convert each to descriptor format
+    return [
+        convert_provider_template_to_descriptor(template)
+        for template in templates
+    ]
+
+
+def fetch_available_well_known_llms_with_templates() -> list[WellKnownLLMProviderDescriptor]:
+    """
+    Enhanced version that includes both existing providers and new provider templates.
+    This maintains backward compatibility while adding new extensible providers.
+    """
+    # Get existing 5 providers (OpenAI, Anthropic, Azure, Bedrock, Vertex AI)
+    existing_providers = fetch_available_well_known_llms()
+    
+    # Get new provider templates (Groq, Ollama, Together AI, Fireworks AI)
+    template_providers = fetch_provider_templates_as_descriptors()
+    
+    # Combine both lists
+    return existing_providers + template_providers

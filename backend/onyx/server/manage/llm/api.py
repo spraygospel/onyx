@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from datetime import datetime
 from datetime import timezone
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi import Depends
@@ -22,7 +23,7 @@ from onyx.db.models import User
 from onyx.llm.factory import get_default_llms
 from onyx.llm.factory import get_llm
 from onyx.llm.factory import get_max_input_tokens_from_llm_provider
-from onyx.llm.llm_provider_options import fetch_available_well_known_llms
+from onyx.llm.llm_provider_options import fetch_available_well_known_llms_with_templates
 from onyx.llm.llm_provider_options import WellKnownLLMProviderDescriptor
 from onyx.llm.utils import get_llm_contextual_cost
 from onyx.llm.utils import litellm_exception_to_error_msg
@@ -34,10 +35,13 @@ from onyx.server.manage.llm.models import LLMProviderUpsertRequest
 from onyx.server.manage.llm.models import LLMProviderView
 from onyx.server.manage.llm.models import ModelConfigurationUpsertRequest
 from onyx.server.manage.llm.models import TestLLMRequest
+from onyx.server.manage.llm.models import TestConnectionRequest
 from onyx.server.manage.llm.models import VisionProviderResponse
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
+import requests
 
+import time
 logger = setup_logger()
 
 admin_router = APIRouter(prefix="/admin/llm")
@@ -48,7 +52,7 @@ basic_router = APIRouter(prefix="/llm")
 def fetch_llm_options(
     _: User | None = Depends(current_admin_user),
 ) -> list[WellKnownLLMProviderDescriptor]:
-    return fetch_available_well_known_llms()
+    return fetch_available_well_known_llms_with_templates()
 
 
 @admin_router.post("/test")
@@ -142,6 +146,274 @@ def test_default_provider(
     )
     if error:
         raise HTTPException(status_code=400, detail=error)
+
+
+@admin_router.post("/test-connection")
+def test_provider_connection(
+    test_request: TestConnectionRequest,
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """Test provider connection by fetching available models"""
+    
+    try:
+        # Debug log to see what we receive
+        logger.info(f"Testing {test_request.provider}: model_endpoint={test_request.model_endpoint}, api_base={test_request.api_base}")
+        
+        # Determine model URL based on provider and endpoint configuration
+        if test_request.model_endpoint:
+            if test_request.model_endpoint.startswith("http"):
+                # Full URL endpoint (Groq, Together AI, Fireworks, etc.)
+                model_url = test_request.model_endpoint
+            elif test_request.api_base and test_request.provider == "ollama":
+                # Relative endpoint for Ollama, combine with api_base
+                model_url = f"{test_request.api_base.rstrip('/')}{test_request.model_endpoint}"
+            else:
+                # For other cases where we have endpoint but no api_base
+                model_url = test_request.model_endpoint
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="No model endpoint configured for this provider"
+            )
+
+        # Prepare headers
+        headers = {"Content-Type": "application/json"}
+        if test_request.api_key:
+            headers["Authorization"] = f"Bearer {test_request.api_key}"
+        
+        # Make request to fetch models
+        logger.info(f"Testing connection to {test_request.provider} at {model_url}")
+        response = requests.get(
+            model_url,
+            headers=headers,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            try:
+                models_data = response.json()
+                # Different providers have different response formats
+                if isinstance(models_data, dict) and "data" in models_data:
+                    # OpenAI-style response (Groq, Together AI, etc.)
+                    model_count = len(models_data["data"])
+                elif isinstance(models_data, dict) and "models" in models_data:
+                    # Ollama-style response
+                    model_count = len(models_data["models"])
+                elif isinstance(models_data, list):
+                    # Direct list of models
+                    model_count = len(models_data)
+                else:
+                    model_count = 0
+                
+                return {
+                    "success": True,
+                    "message": f"Successfully connected to {test_request.provider}. Found {model_count} available models.",
+                    "model_count": model_count
+                }
+            except Exception as e:
+                logger.warning(f"Could not parse models response: {e}")
+                return {
+                    "success": True,
+                    "message": f"Successfully connected to {test_request.provider}, but could not parse models list.",
+                    "model_count": 0
+                }
+        else:
+            error_msg = f"Failed to connect to {test_request.provider}: HTTP {response.status_code}"
+            if response.text:
+                try:
+                    error_data = response.json()
+                    if "error" in error_data:
+                        error_msg += f" - {error_data['error'].get('message', error_data['error'])}"
+                except:
+                    error_msg += f" - {response.text[:200]}"
+            
+            raise HTTPException(status_code=400, detail=error_msg)
+            
+    except requests.exceptions.RequestException as e:
+        logger.exception(f"Connection test failed for {test_request.provider}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Connection failed: {str(e)}"
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error testing {test_request.provider}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Unexpected error: {str(e)}"
+        )
+
+
+@admin_router.get("/providers/{provider_id}/models")
+def fetch_provider_models(
+    provider_id: str,
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """Fetch available models for a specific provider"""
+    
+    # Get the provider descriptor
+    all_providers = fetch_available_well_known_llms_with_templates()
+    provider = None
+    for p in all_providers:
+        if p.name == provider_id:
+            provider = p
+            break
+    
+    if not provider:
+        raise HTTPException(status_code=404, detail=f"Provider '{provider_id}' not found")
+    
+    if not provider.model_endpoint:
+        raise HTTPException(status_code=400, detail=f"No model endpoint configured for provider '{provider_id}'")
+    
+    try:
+        # Prepare headers for API request
+        headers = {"User-Agent": "Onyx-LLM-Discovery/1.0"}
+        
+        # Add authorization for providers that need it
+        if provider_id == "groq":
+            import os
+            api_key = os.getenv("GROQ_API_KEY")
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+        
+        # Make request to provider's model endpoint
+        response = requests.get(
+            provider.model_endpoint,
+            headers=headers,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Extract models from response (OpenAI-style format expected)
+            models = []
+            if "data" in data and isinstance(data["data"], list):
+                models = [model.get("id", str(model)) for model in data["data"]]
+            elif "models" in data and isinstance(data["models"], list):
+                models = [model.get("id", str(model)) for model in data["models"]]
+            elif isinstance(data, list):
+                models = [model.get("id", str(model)) for model in data]
+            else:
+                # Fallback to static models if response format is unexpected
+                models = [model.name for model in provider.model_configurations]
+            
+            return {
+                "models": models,
+                "cached": False,
+                "timestamp": int(time.time()),
+                "ttl": 3600
+            }
+        else:
+            # API returned error, fallback to static models
+            fallback_models = [model.name for model in provider.model_configurations]
+            return {
+                "models": fallback_models,
+                "cached": False,
+                "timestamp": int(time.time()),
+                "ttl": 3600,
+                "fallback": True,
+                "fallback_reason": f"Provider API returned status {response.status_code}"
+            }
+    
+    except requests.RequestException as e:
+        # Network error, fallback to static models
+        fallback_models = [model.name for model in provider.model_configurations]
+        return {
+            "models": fallback_models,
+            "cached": False,
+            "timestamp": int(time.time()),
+            "ttl": 3600,
+            "fallback": True,
+            "fallback_reason": f"Network error: {str(e)}"
+        }
+
+
+@admin_router.post("/providers/{provider_id}/refresh-models")
+def refresh_provider_models(
+    provider_id: str,
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """Force refresh models for a specific provider (bypasses cache)"""
+    
+    # Get the provider descriptor
+    all_providers = fetch_available_well_known_llms_with_templates()
+    provider = None
+    for p in all_providers:
+        if p.name == provider_id:
+            provider = p
+            break
+    
+    if not provider:
+        raise HTTPException(status_code=404, detail=f"Provider '{provider_id}' not found")
+    
+    if not provider.model_endpoint:
+        raise HTTPException(status_code=400, detail=f"No model endpoint configured for provider '{provider_id}'")
+    
+    try:
+        # Prepare headers for API request
+        headers = {
+            "User-Agent": "Onyx-LLM-Discovery/1.0",
+            "Cache-Control": "no-cache"
+        }
+        
+        # Add authorization for providers that need it
+        if provider_id == "groq":
+            import os
+            api_key = os.getenv("GROQ_API_KEY")
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+        
+        # Force fresh request to provider's model endpoint
+        response = requests.get(
+            provider.model_endpoint,
+            headers=headers,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            # Extract models from response (OpenAI-style format expected)
+            models = []
+            if "data" in data and isinstance(data["data"], list):
+                models = [model.get("id", str(model)) for model in data["data"]]
+            elif "models" in data and isinstance(data["models"], list):
+                models = [model.get("id", str(model)) for model in data["models"]]
+            elif isinstance(data, list):
+                models = [model.get("id", str(model)) for model in data]
+            else:
+                # Fallback to static models if response format is unexpected
+                models = [model.name for model in provider.model_configurations]
+            
+            return {
+                "models": models,
+                "cached": False,
+                "timestamp": int(time.time()),
+                "ttl": 3600
+            }
+        else:
+            # API returned error, fallback to static models
+            fallback_models = [model.name for model in provider.model_configurations]
+            return {
+                "models": fallback_models,
+                "cached": False,
+                "timestamp": int(time.time()),
+                "ttl": 3600,
+                "fallback": True,
+                "fallback_reason": f"Provider API returned status {response.status_code}"
+            }
+    
+    except requests.RequestException as e:
+        # Network error, fallback to static models
+        fallback_models = [model.name for model in provider.model_configurations]
+        return {
+            "models": fallback_models,
+            "cached": False,
+            "timestamp": int(time.time()),
+            "ttl": 3600,
+            "fallback": True,
+            "fallback_reason": f"Network error: {str(e)}"
+        }
 
 
 @admin_router.get("/provider")

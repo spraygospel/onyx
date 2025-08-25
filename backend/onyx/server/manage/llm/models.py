@@ -34,6 +34,21 @@ class TestLLMRequest(BaseModel):
     api_key_changed: bool
 
 
+class TestConnectionRequest(BaseModel):
+    """Simplified request for testing provider connection by fetching available models"""
+    # provider level
+    provider: str
+    api_key: str | None = None
+    api_base: str | None = None
+    api_version: str | None = None
+    custom_config: dict[str, str] | None = None
+    deployment_name: str | None = None
+    
+    # Provider template info for model endpoint
+    model_endpoint: str | None = None
+    litellm_provider_name: str | None = None
+
+
 class LLMProviderDescriptor(BaseModel):
     """A descriptor for an LLM provider that can be safely viewed by
     non-admin users. Used when giving a list of available LLMs."""

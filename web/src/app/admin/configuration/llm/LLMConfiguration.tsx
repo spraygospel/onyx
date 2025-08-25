@@ -15,6 +15,44 @@ import { LLMProviderUpdateForm } from "./LLMProviderUpdateForm";
 import { LLM_PROVIDERS_ADMIN_URL } from "./constants";
 import { CustomLLMProviderUpdateForm } from "./CustomLLMProviderUpdateForm";
 import { ConfiguredLLMProviderDisplay } from "./ConfiguredLLMProviderDisplay";
+import { ConfigurationWizard } from "@/components/llm/ConfigurationWizard";
+import { ProviderTemplate } from "@/lib/types/providerTemplates";
+
+// Provider templates that should use ConfigurationWizard
+const PROVIDER_TEMPLATE_NAMES = ["groq", "ollama", "together_ai", "fireworks_ai"];
+
+// Convert WellKnownLLMProviderDescriptor to ProviderTemplate for ConfigurationWizard
+function convertToProviderTemplate(descriptor: WellKnownLLMProviderDescriptor): ProviderTemplate {
+  const config_schema: Record<string, any> = {};
+  
+  // Convert custom_config_keys to config_schema format
+  if (descriptor.custom_config_keys) {
+    descriptor.custom_config_keys.forEach(key => {
+      config_schema[key.name] = {
+        type: key.is_secret ? "password" : key.key_type === "file_input" ? "file" : "text",
+        label: key.display_name,
+        placeholder: key.default_value || "",
+        description: key.description,
+        required: key.is_required,
+        default_value: key.default_value,
+      };
+    });
+  }
+
+  return {
+    id: descriptor.name,
+    name: descriptor.display_name,
+    description: `Configuration for ${descriptor.display_name}`,
+    category: "cloud",
+    setup_difficulty: "easy",
+    config_schema,
+    popular_models: descriptor.model_configurations.map(model => model.name),
+    model_fetching: "dynamic" as const,
+    model_endpoint: descriptor.model_endpoint, // Essential: preserve model_endpoint for dynamic model fetching
+    litellm_provider_name: descriptor.litellm_provider_name || descriptor.name,
+    documentation_url: "",
+  };
+}
 
 function LLMProviderUpdateModal({
   llmProviderDescriptor,
@@ -34,6 +72,95 @@ function LLMProviderUpdateModal({
     llmProviderDescriptor?.name ||
     existingLlmProvider?.name ||
     "Custom LLM Provider";
+
+  // Check if this is a provider template that should use ConfigurationWizard
+  const isProviderTemplate = llmProviderDescriptor && 
+    PROVIDER_TEMPLATE_NAMES.includes(llmProviderDescriptor.name);
+
+  if (isProviderTemplate && llmProviderDescriptor) {
+    const template = convertToProviderTemplate(llmProviderDescriptor);
+    
+    return (
+      <Modal
+        title={`Setup ${providerName}`}
+        onOutsideClick={() => onClose()}
+        hideOverflow={true}
+      >
+        <div className="max-h-[70vh] overflow-y-auto px-4">
+          <ConfigurationWizard
+            provider={template}
+            initialConfiguration={existingLlmProvider?.custom_config || {}}
+            initialSelectedModels={
+              existingLlmProvider?.model_configurations
+                .filter(model => model.is_visible)
+                .map(model => model.name) || []
+            }
+            onComplete={async (configuration, models) => {
+              try {
+                // Create the provider using the existing API
+                const response = await fetch(
+                  `${LLM_PROVIDERS_ADMIN_URL}${
+                    existingLlmProvider ? "" : "?is_creation=true"
+                  }`,
+                  {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      provider: llmProviderDescriptor.name,
+                      name: existingLlmProvider?.name || "Default",
+                      custom_config: configuration,
+                      model_configurations: llmProviderDescriptor.model_configurations.map(model => ({
+                        name: model.name,
+                        is_visible: models.includes(model.name),
+                        max_input_tokens: model.max_input_tokens,
+                      })),
+                      default_model_name: models[0] || llmProviderDescriptor.default_model,
+                      fast_default_model_name: models[1] || models[0] || llmProviderDescriptor.default_fast_model,
+                      is_public: true,
+                      groups: [],
+                    }),
+                  }
+                );
+
+                if (!response.ok) {
+                  const errorMsg = (await response.json()).detail;
+                  throw new Error(errorMsg || "Failed to save provider");
+                }
+
+                if (shouldMarkAsDefault) {
+                  const newProvider = await response.json();
+                  await fetch(`${LLM_PROVIDERS_ADMIN_URL}/${newProvider.id}/default`, {
+                    method: "POST",
+                  });
+                }
+
+                if (setPopup) {
+                  setPopup({
+                    type: "success",
+                    message: existingLlmProvider 
+                      ? "Provider updated successfully!" 
+                      : "Provider enabled successfully!",
+                  });
+                }
+
+                onClose();
+              } catch (error) {
+                if (setPopup) {
+                  setPopup({
+                    type: "error",
+                    message: error instanceof Error ? error.message : "Failed to save provider",
+                  });
+                }
+              }
+            }}
+            onCancel={onClose}
+          />
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
