@@ -366,9 +366,7 @@ export function ChatPage({
 
   const { assistants: availableAssistants, pinnedAssistants } = useAssistants();
 
-  const [showApiKeyModal, setShowApiKeyModal] = useState(
-    !shouldShowWelcomeModal
-  );
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
 
   const { user, isAdmin } = useUser();
   const slackChatId = searchParams?.get("slackChatId");
@@ -3476,9 +3474,6 @@ export function ChatPage({
                               retrievalEnabled={retrievalEnabled}
                               toggleDocSelection={() =>
                                 setToggleDocSelection(true)
-                              }
-                              showConfigureAPIKey={() =>
-                                setShowApiKeyModal(true)
                               }
                               selectedDocuments={selectedDocuments}
                               message={message}

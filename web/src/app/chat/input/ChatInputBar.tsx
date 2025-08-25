@@ -173,7 +173,6 @@ export const SourceChip = ({
 interface ChatInputBarProps {
   toggleDocSelection: () => void;
   removeDocs: () => void;
-  showConfigureAPIKey: () => void;
   selectedDocuments: OnyxDocument[];
   message: string;
   setMessage: (message: string) => void;
@@ -206,7 +205,6 @@ export function ChatInputBar({
   removeDocs,
   toggleDocumentSidebar,
   filterManager,
-  showConfigureAPIKey,
   selectedDocuments,
   message,
   setMessage,
@@ -583,9 +581,7 @@ export function ChatInputBar({
             </div>
           )}
 
-          <UnconfiguredLlmProviderText
-            showConfigureAPIKey={showConfigureAPIKey}
-          />
+          <UnconfiguredLlmProviderText />
           <div className="w-full h-[10px]"></div>
           <div
             className="

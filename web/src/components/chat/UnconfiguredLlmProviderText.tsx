@@ -1,10 +1,11 @@
+import Link from "next/link";
 import { useProviderStatus } from "./ProviderContext";
 
 export function UnconfiguredLlmProviderText({
   showConfigureAPIKey,
   noSources,
 }: {
-  showConfigureAPIKey: () => void;
+  showConfigureAPIKey?: () => void;
   noSources?: boolean;
 }) {
   const { shouldShowConfigurationNeeded } = useProviderStatus();
@@ -27,12 +28,12 @@ export function UnconfiguredLlmProviderText({
           <p className="text-base text-center w-full text-subtle">
             Please note that you have not yet configured an LLM provider. You
             can configure one{" "}
-            <button
-              onClick={showConfigureAPIKey}
+            <Link
+              href="/admin/configuration/llm"
               className="text-link hover:underline cursor-pointer"
             >
               here
-            </button>
+            </Link>
             .
           </p>
         )
