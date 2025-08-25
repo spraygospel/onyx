@@ -1,0 +1,68 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "accounts/fireworks/models/llama-v2-7b-chat",
+      "object": "model",
+      "created": 1693721698,
+      "owned_by": "Meta",
+      "context_window": 4096,
+      "display_name": "Llama 2 7B Chat",
+      "description": "Meta's Llama 2 7B model fine-tuned for conversations"
+    },
+    {
+      "id": "accounts/fireworks/models/llama-v2-13b-chat",
+      "object": "model", 
+      "created": 1693721698,
+      "owned_by": "Meta",
+      "context_window": 4096,
+      "display_name": "Llama 2 13B Chat",
+      "description": "Meta's Llama 2 13B model fine-tuned for conversations"
+    },
+    {
+      "id": "accounts/fireworks/models/mixtral-8x7b-instruct",
+      "object": "model",
+      "created": 1693721698,
+      "owned_by": "Mistral AI",
+      "context_window": 32768,
+      "display_name": "Mixtral 8x7B Instruct",
+      "description": "Mistral's sparse mixture of experts model"
+    },
+    {
+      "id": "accounts/fireworks/models/qwen2-72b-instruct",
+      "object": "model",
+      "created": 1693721698,
+      "owned_by": "Alibaba",
+      "context_window": 131072,
+      "display_name": "Qwen 2 72B Instruct", 
+      "description": "Alibaba's large language model optimized for instructions"
+    },
+    {
+      "id": "accounts/fireworks/models/deepseek-coder-34b-instruct",
+      "object": "model",
+      "created": 1693721698,
+      "owned_by": "DeepSeek",
+      "context_window": 16384,
+      "display_name": "DeepSeek Coder 34B Instruct",
+      "description": "Code-specialized model from DeepSeek"
+    },
+    {
+      "id": "accounts/fireworks/models/yi-34b-chat",
+      "object": "model",
+      "created": 1693721698,
+      "owned_by": "01.AI",
+      "context_window": 4096,
+      "display_name": "Yi 34B Chat",
+      "description": "Yi series chat model with strong reasoning capabilities"
+    },
+    {
+      "id": "accounts/fireworks/models/zephyr-7b-beta",
+      "object": "model",
+      "created": 1693721698,
+      "owned_by": "HuggingFace",
+      "context_window": 8192,
+      "display_name": "Zephyr 7B Beta",
+      "description": "Fine-tuned Mistral model optimized for helpfulness"
+    }
+  ]
+}

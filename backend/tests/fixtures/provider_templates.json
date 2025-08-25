@@ -1,0 +1,270 @@
+{
+  "provider_templates": [
+    {
+      "id": "groq",
+      "name": "Groq",
+      "description": "Ultra-fast inference with Groq's LPU technology",
+      "category": "cloud",
+      "setup_difficulty": "easy",
+      "config_schema": {
+        "api_key": {
+          "type": "password",
+          "label": "Groq API Key",
+          "placeholder": "gsk_...",
+          "required": true,
+          "description": "Get your API key from console.groq.com",
+          "validation": "^gsk_[a-zA-Z0-9]+$"
+        }
+      },
+      "model_fetching": "dynamic",
+      "model_endpoint": "https://api.groq.com/openai/v1/models",
+      "model_list_cache_ttl": 3600,
+      "popular_models": [
+        "llama-3.1-8b-instant",
+        "llama-3.1-70b-versatile",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it"
+      ],
+      "litellm_provider_name": "groq",
+      "model_prefix": "groq/",
+      "documentation_url": "https://console.groq.com/docs/quickstart",
+      "logoUrl": "/images/providers/groq.png"
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "description": "Run LLMs locally on your machine",
+      "category": "local",
+      "setup_difficulty": "medium",
+      "config_schema": {
+        "api_base": {
+          "type": "url",
+          "label": "Ollama Server URL",
+          "placeholder": "http://localhost:11434",
+          "required": true,
+          "default_value": "http://localhost:11434",
+          "description": "URL of your Ollama server"
+        }
+      },
+      "model_fetching": "dynamic",
+      "model_endpoint": "/api/tags",
+      "model_list_cache_ttl": 300,
+      "popular_models": [
+        "llama3.2:latest",
+        "qwen2.5:latest",
+        "deepseek-coder:latest",
+        "mistral-nemo:latest"
+      ],
+      "litellm_provider_name": "ollama",
+      "documentation_url": "https://ollama.ai/",
+      "logoUrl": "/images/providers/ollama.png"
+    },
+    {
+      "id": "together_ai",
+      "name": "Together AI",
+      "description": "High-performance inference for open-source models",
+      "category": "cloud",
+      "setup_difficulty": "easy",
+      "config_schema": {
+        "api_key": {
+          "type": "password",
+          "label": "Together AI API Key",
+          "placeholder": "...",
+          "required": true,
+          "description": "Get your API key from api.together.xyz"
+        }
+      },
+      "model_fetching": "dynamic",
+      "model_endpoint": "https://api.together.xyz/v1/models",
+      "model_list_cache_ttl": 3600,
+      "popular_models": [
+        "meta-llama/Llama-2-7b-chat-hf",
+        "meta-llama/Llama-2-13b-chat-hf",
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO"
+      ],
+      "litellm_provider_name": "together_ai",
+      "model_prefix": "together_ai/",
+      "documentation_url": "https://docs.together.ai/",
+      "logoUrl": "/images/providers/together.png"
+    },
+    {
+      "id": "fireworks_ai",
+      "name": "Fireworks AI",
+      "description": "Enterprise-grade inference platform for production AI",
+      "category": "cloud",
+      "setup_difficulty": "easy",
+      "config_schema": {
+        "api_key": {
+          "type": "password",
+          "label": "Fireworks AI API Key",
+          "placeholder": "fw_...",
+          "required": true,
+          "description": "Get your API key from fireworks.ai",
+          "validation": "^fw_[a-zA-Z0-9]+$"
+        }
+      },
+      "model_fetching": "dynamic",
+      "model_endpoint": "https://api.fireworks.ai/inference/v1/models",
+      "model_list_cache_ttl": 3600,
+      "popular_models": [
+        "accounts/fireworks/models/llama-v2-7b-chat",
+        "accounts/fireworks/models/llama-v2-13b-chat",
+        "accounts/fireworks/models/mixtral-8x7b-instruct",
+        "accounts/fireworks/models/qwen2-72b-instruct"
+      ],
+      "litellm_provider_name": "fireworks_ai",
+      "model_prefix": "fireworks_ai/",
+      "documentation_url": "https://readme.fireworks.ai/",
+      "logoUrl": "/images/providers/fireworks.png"
+    }
+  ],
+  "field_config_examples": {
+    "text_field": {
+      "type": "text",
+      "label": "Display Name",
+      "placeholder": "Enter display name",
+      "required": true,
+      "description": "Provider display name"
+    },
+    "password_field": {
+      "type": "password",
+      "label": "API Key",
+      "placeholder": "sk_...",
+      "required": true,
+      "description": "Your API key",
+      "validation": "^sk_[a-zA-Z0-9]+$"
+    },
+    "url_field": {
+      "type": "url",
+      "label": "Base URL",
+      "placeholder": "https://api.example.com",
+      "required": true,
+      "description": "API base URL"
+    },
+    "select_field": {
+      "type": "select",
+      "label": "Region",
+      "required": true,
+      "options": ["us-east-1", "us-west-2", "eu-west-1"],
+      "default_value": "us-east-1",
+      "description": "Select your preferred region"
+    },
+    "file_field": {
+      "type": "file",
+      "label": "Service Account Key",
+      "required": true,
+      "description": "Upload your service account JSON file"
+    },
+    "textarea_field": {
+      "type": "textarea",
+      "label": "Custom Configuration",
+      "placeholder": "Enter custom config...",
+      "required": false,
+      "description": "Additional configuration options"
+    }
+  },
+  "test_scenarios": {
+    "valid_provider_creation": {
+      "input": {
+        "id": "test_provider",
+        "name": "Test Provider",
+        "description": "Test provider description",
+        "category": "cloud",
+        "setup_difficulty": "easy",
+        "config_schema": {
+          "api_key": {
+            "type": "password",
+            "label": "API Key",
+            "required": true
+          }
+        },
+        "litellm_provider_name": "test_provider"
+      },
+      "expected_output": "valid"
+    },
+    "invalid_provider_missing_id": {
+      "input": {
+        "name": "Test Provider",
+        "description": "Test provider description",
+        "category": "cloud",
+        "setup_difficulty": "easy",
+        "config_schema": {},
+        "litellm_provider_name": "test_provider"
+      },
+      "expected_output": "error",
+      "error_type": "ValidationError"
+    },
+    "invalid_provider_bad_category": {
+      "input": {
+        "id": "test_provider",
+        "name": "Test Provider",
+        "description": "Test provider description",
+        "category": "invalid_category",
+        "setup_difficulty": "easy",
+        "config_schema": {},
+        "litellm_provider_name": "test_provider"
+      },
+      "expected_output": "error",
+      "error_type": "ValueError"
+    },
+    "invalid_field_config_bad_type": {
+      "input": {
+        "id": "test_provider",
+        "name": "Test Provider", 
+        "description": "Test provider description",
+        "category": "cloud",
+        "setup_difficulty": "easy",
+        "config_schema": {
+          "bad_field": {
+            "type": "invalid_type",
+            "label": "Bad Field",
+            "required": true
+          }
+        },
+        "litellm_provider_name": "test_provider"
+      },
+      "expected_output": "error",
+      "error_type": "ValueError"
+    }
+  },
+  "categories": {
+    "cloud": {
+      "description": "Cloud-hosted AI inference services",
+      "examples": ["groq", "together_ai", "fireworks_ai"],
+      "typical_setup": "API key authentication"
+    },
+    "local": {
+      "description": "Self-hosted or local AI inference",
+      "examples": ["ollama", "lm_studio", "localai"],
+      "typical_setup": "Local server URL configuration"
+    },
+    "enterprise": {
+      "description": "Enterprise cloud AI services",
+      "examples": ["azure", "bedrock", "vertex_ai"],
+      "typical_setup": "Complex authentication and configuration"
+    },
+    "specialized": {
+      "description": "Specialized or domain-specific AI services",
+      "examples": ["custom_endpoints", "research_apis"],
+      "typical_setup": "Custom configuration requirements"
+    }
+  },
+  "setup_difficulties": {
+    "easy": {
+      "description": "Simple API key authentication",
+      "setup_time": "< 5 minutes",
+      "requirements": ["API key"]
+    },
+    "medium": {
+      "description": "Multiple configuration steps",
+      "setup_time": "5-15 minutes", 
+      "requirements": ["Multiple fields", "some technical knowledge"]
+    },
+    "hard": {
+      "description": "Complex setup with multiple components",
+      "setup_time": "> 15 minutes",
+      "requirements": ["Technical expertise", "multiple services", "advanced configuration"]
+    }
+  }
+}
