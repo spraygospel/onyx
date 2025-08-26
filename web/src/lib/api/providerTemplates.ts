@@ -63,16 +63,46 @@ export class ProviderTemplateAPI {
   }
 
   /**
-   * Fetch models for a specific provider
+   * Intelligent fetch with fallback for ad blocker compatibility
+   */
+  private static async fetchWithFallback(url: string, fallbackUrl?: string): Promise<Response> {
+    try {
+      // Try clean proxy endpoint first
+      const response = await fetch(url);
+      if (response.ok) return response;
+      
+      console.warn('Primary endpoint failed with status:', response.status);
+    } catch (error) {
+      // Ad blocker or network issue
+      console.warn('Primary endpoint failed, trying fallback:', error);
+    }
+    
+    if (fallbackUrl) {
+      try {
+        return await fetch(fallbackUrl);
+      } catch (error) {
+        // Enhanced error message for ad blocker detection
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          throw new Error(`Model discovery blocked. Please disable ad blocker for localhost:8080 or try incognito mode.`);
+        }
+        throw error;
+      }
+    }
+    
+    throw new Error('All endpoints failed');
+  }
+
+  /**
+   * Fetch models for a specific provider with intelligent fallback
    */
   static async fetchProviderModels(providerId: string): Promise<ModelFetchResponse> {
-    const response = await fetch(`${API_BASE}/admin/llm/providers/${providerId}/models`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
+    // Clean proxy endpoint (ad blocker safe)
+    const proxyUrl = `${API_BASE}/api/llm-models?provider=${providerId}`;
+    // Fallback endpoint (original, might be blocked)
+    const fallbackUrl = `${API_BASE}/admin/llm/providers/${providerId}/models`;
+    
+    const response = await this.fetchWithFallback(proxyUrl, fallbackUrl);
+    
     if (!response.ok) {
       throw new Error(`Failed to fetch models for provider ${providerId}: ${response.statusText}`);
     }
@@ -88,16 +118,16 @@ export class ProviderTemplateAPI {
   }
 
   /**
-   * Refresh models for a specific provider (force API call)
+   * Refresh models for a specific provider with intelligent fallback
    */
   static async refreshProviderModels(providerId: string): Promise<ModelFetchResponse> {
-    const response = await fetch(`${API_BASE}/admin/llm/providers/${providerId}/refresh-models`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
+    // Clean proxy endpoint (ad blocker safe)
+    const proxyUrl = `${API_BASE}/api/llm-models/refresh?provider=${providerId}`;
+    // Fallback endpoint (original, might be blocked)
+    const fallbackUrl = `${API_BASE}/admin/llm/providers/${providerId}/refresh-models`;
+    
+    const response = await this.fetchWithFallback(proxyUrl, fallbackUrl);
+    
     if (!response.ok) {
       throw new Error(`Failed to refresh models for provider ${providerId}: ${response.statusText}`);
     }

@@ -118,9 +118,10 @@ export const ModelDiscovery: React.FC<ModelDiscoveryProps> = ({
     setFetchState({ loading: true, error: null, cached: false });
 
     try {
+      const providerId = provider.name || provider.id || '';
       const response: ModelFetchResponse = forceRefresh 
-        ? await ProviderTemplateAPI.refreshProviderModels(provider.id)
-        : await ProviderTemplateAPI.fetchProviderModels(provider.id);
+        ? await ProviderTemplateAPI.refreshProviderModels(providerId)
+        : await ProviderTemplateAPI.fetchProviderModels(providerId);
 
       const modelInfos: ModelInfo[] = response.models.map(modelName => ({
         id: modelName,
@@ -140,7 +141,7 @@ export const ModelDiscovery: React.FC<ModelDiscoveryProps> = ({
       });
 
     } catch (err) {
-      console.error(`Failed to fetch models for ${provider.id}:`, err);
+      console.error(`Failed to fetch models for ${provider.name || provider.id}:`, err);
       
       // Fallback to popular models
       const fallbackModels: ModelInfo[] = (provider.popular_models || []).map(modelName => ({

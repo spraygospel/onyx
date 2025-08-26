@@ -42,10 +42,160 @@ from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
 import requests
 
 import time
+import os
+from typing import Dict
 logger = setup_logger()
+
+
+class LLMModelProxyService:
+    """Clean proxy service for LLM model discovery to avoid ad blocker issues"""
+    
+    def __init__(self):
+        self.cache: Dict[str, Any] = {}
+        self.cache_ttl = 3600  # 1 hour
+    
+    def is_cached(self, cache_key: str) -> bool:
+        """Check if cache entry is valid"""
+        if cache_key not in self.cache:
+            return False
+        
+        entry = self.cache[cache_key]
+        current_time = int(time.time())
+        return (current_time - entry["timestamp"]) < entry["ttl"]
+    
+    def get_models(self, provider_name: str) -> dict[str, Any]:
+        """Get models via backend proxy with caching"""
+        # Normalize provider name to lowercase for consistency
+        provider_name = provider_name.lower()
+        cache_key = f"models:{provider_name}"
+        
+        # Check cache first
+        if self.is_cached(cache_key):
+            cached_entry = self.cache[cache_key]
+            cached_entry["cached"] = True
+            return cached_entry
+        
+        # Get fresh data from provider
+        result = self._fetch_models_background(provider_name)
+        
+        # Cache results
+        self.cache[cache_key] = {
+            'models': result["models"],
+            'cached': False,
+            'timestamp': int(time.time()),
+            'ttl': self.cache_ttl,
+            'fallback': result.get("fallback", False),
+            'fallback_reason': result.get("fallback_reason")
+        }
+        
+        return self.cache[cache_key]
+    
+    def refresh_models(self, provider_name: str) -> dict[str, Any]:
+        """Refresh models by clearing cache and fetching fresh data"""
+        # Normalize provider name to lowercase for consistency
+        provider_name = provider_name.lower()
+        cache_key = f"models:{provider_name}"
+        
+        # Clear cache for this provider
+        if cache_key in self.cache:
+            del self.cache[cache_key]
+        
+        # Get fresh data from provider (bypassing cache)
+        result = self._fetch_models_background(provider_name)
+        
+        # Cache the fresh results
+        self.cache[cache_key] = {
+            'models': result["models"],
+            'cached': False,  # Always False for refresh
+            'timestamp': int(time.time()),
+            'ttl': self.cache_ttl,
+            'fallback': result.get("fallback", False),
+            'fallback_reason': result.get("fallback_reason")
+        }
+        
+        return self.cache[cache_key]
+    
+    def _fetch_models_background(self, provider_name: str) -> dict[str, Any]:
+        """Background fetching shielded from frontend"""
+        # Normalize provider name to lowercase for consistency
+        provider_name = provider_name.lower()
+        
+        # Get provider configuration
+        all_providers = fetch_available_well_known_llms_with_templates()
+        provider = None
+        for p in all_providers:
+            if p.name.lower() == provider_name:
+                provider = p
+                break
+        
+        if not provider:
+            return {
+                "models": [],
+                "fallback": True,
+                "fallback_reason": f"Provider '{provider_name}' not found"
+            }
+        
+        if not provider.model_endpoint:
+            # Static provider, use configured models
+            return {
+                "models": [model.name for model in provider.model_configurations],
+                "fallback": False
+            }
+        
+        try:
+            # Dynamic provider, fetch from external API
+            headers = {"User-Agent": "Onyx-LLM-Discovery/1.0"}
+            
+            # Add authentication based on provider
+            if provider_name == "groq":
+                api_key = os.getenv("GROQ_API_KEY")
+                if api_key:
+                    headers["Authorization"] = f"Bearer {api_key}"
+            
+            # Make proxied API call
+            response = requests.get(
+                provider.model_endpoint,
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                
+                # Parse response based on format
+                models = []
+                if "data" in data and isinstance(data["data"], list):
+                    models = [model.get("id", str(model)) for model in data["data"]]
+                elif "models" in data and isinstance(data["models"], list):
+                    models = [model.get("id", str(model)) for model in data["models"]]
+                elif isinstance(data, list):
+                    models = [model.get("id", str(model)) for model in data]
+                
+                return {"models": models, "fallback": False}
+            else:
+                # API error, fallback to static models
+                return {
+                    "models": [model.name for model in provider.model_configurations],
+                    "fallback": True,
+                    "fallback_reason": f"Provider API returned status {response.status_code}"
+                }
+        
+        except requests.RequestException as e:
+            # Network error, fallback to static models
+            return {
+                "models": [model.name for model in provider.model_configurations],
+                "fallback": True,
+                "fallback_reason": f"Network error: {str(e)}"
+            }
+
+
+# Initialize global proxy service
+_proxy_service = LLMModelProxyService()
 
 admin_router = APIRouter(prefix="/admin/llm")
 basic_router = APIRouter(prefix="/llm")
+# Clean proxy router - ad blocker safe URLs
+proxy_router = APIRouter(prefix="/api")
 
 
 @admin_router.get("/built-in/options")
@@ -250,8 +400,11 @@ def fetch_provider_models(
 ) -> dict[str, Any]:
     """Fetch available models for a specific provider"""
     
+    logger.info(f"[DEBUG] fetch_provider_models called with provider_id: '{provider_id}'")
+    
     # Get the provider descriptor
     all_providers = fetch_available_well_known_llms_with_templates()
+    logger.info(f"[DEBUG] Available providers: {[p.name for p in all_providers]}")
     provider = None
     for p in all_providers:
         if p.name == provider_id:
@@ -658,3 +811,99 @@ def get_provider_contextual_cost(
             )
 
     return costs
+
+
+# ===== CLEAN PROXY ENDPOINTS (AD BLOCKER SAFE) =====
+# Phase 1: Implementation of n8n-inspired clean URLs
+
+@proxy_router.get("/llm-models")
+def get_llm_models_proxy(
+    provider: str = Query(..., description="Provider name (groq, ollama, etc.)"),
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """
+    Clean proxy endpoint for model discovery - ad blocker safe.
+    Replaces /admin/llm/providers/{provider}/models with clean URL pattern.
+    """
+    logger.info(f"[PROXY] Fetching models for provider: {provider}")
+    
+    try:
+        result = _proxy_service.get_models(provider)
+        logger.info(f"[PROXY] Successfully fetched {len(result['models'])} models for {provider}")
+        return result
+    except Exception as e:
+        logger.error(f"[PROXY] Error fetching models for {provider}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch models: {str(e)}")
+
+
+@proxy_router.post("/llm-models/refresh")
+def refresh_llm_models_proxy_post(
+    provider: str = Query(..., description="Provider name (groq, ollama, etc.)"),
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """
+    Force refresh models for provider - ad blocker safe (POST method).
+    Replaces /admin/llm/providers/{provider}/refresh-models with clean URL pattern.
+    """
+    logger.info(f"[PROXY] Force refreshing models for provider: {provider} (POST)")
+    
+    try:
+        # Use refresh_models method which handles cache clearing
+        result = _proxy_service.refresh_models(provider)
+        logger.info(f"[PROXY] Successfully refreshed {len(result['models'])} models for {provider}")
+        return result
+    except Exception as e:
+        logger.error(f"[PROXY] Error refreshing models for {provider}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to refresh models: {str(e)}")
+
+
+@proxy_router.get("/llm-models/refresh")
+def refresh_llm_models_proxy_get(
+    provider: str = Query(..., description="Provider name (groq, ollama, etc.)"),
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """
+    Force refresh models for provider - ad blocker safe (GET method for frontend compatibility).
+    Replaces /admin/llm/providers/{provider}/refresh-models with clean URL pattern.
+    """
+    logger.info(f"[PROXY] Force refreshing models for provider: {provider} (GET)")
+    
+    try:
+        # Use refresh_models method which handles cache clearing
+        result = _proxy_service.refresh_models(provider)
+        logger.info(f"[PROXY] Successfully refreshed {len(result['models'])} models for {provider}")
+        return result
+    except Exception as e:
+        logger.error(f"[PROXY] Error refreshing models for {provider}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to refresh models: {str(e)}")
+
+
+@proxy_router.get("/llm-providers")
+def list_llm_providers_proxy(
+    _: User | None = Depends(current_admin_user),
+) -> list[WellKnownLLMProviderDescriptor]:
+    """
+    Get available provider templates - ad blocker safe.
+    Clean alternative to existing /admin/llm/built-in/options endpoint.
+    """
+    logger.info("[PROXY] Fetching available LLM providers")
+    
+    try:
+        providers = fetch_available_well_known_llms_with_templates()
+        logger.info(f"[PROXY] Successfully fetched {len(providers)} providers")
+        return providers
+    except Exception as e:
+        logger.error(f"[PROXY] Error fetching providers: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch providers: {str(e)}")
+
+
+@proxy_router.get("/models/discovery")
+def discover_models_proxy(
+    provider: str = Query(..., description="Provider name for model discovery"),
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """
+    Alternative clean endpoint for model discovery.
+    Provides same functionality as /api/llm-models with different URL pattern.
+    """
+    return get_llm_models_proxy(provider=provider, _=_)

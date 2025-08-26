@@ -15,9 +15,9 @@ export interface FieldConfig {
 }
 
 export interface ProviderTemplate {
-  id: string;
+  id?: string;
   name: string;
-  description: string;
+  description?: string;
   category: 'cloud' | 'local' | 'enterprise' | 'specialized';
   setup_difficulty: 'easy' | 'medium' | 'hard';
   config_schema: Record<string, FieldConfig>;

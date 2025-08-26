@@ -127,10 +127,11 @@ npm run dev
 **Port conflicts:**
 ```bash
 # Check what's using a port
-lsof -ti:9000
+netstat -tlnp 2>/dev/null | grep -E ':8080|:9000' || lsof -i :8080,9000 2>/dev/null
+netstat -tulpn 2>/dev/null | grep :9000
 
 # Kill process using port
-kill $(lsof -ti:9000)
+kill [8080 process ID] [9000 process ID]
 ```
 
 **Backend errors:** Check `.env.dev` configuration and Docker services status

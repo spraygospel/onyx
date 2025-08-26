@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Frontend API Calls</title>
+</head>
+<body>
+    <h1>Debug Frontend API Calls</h1>
+    <button onclick="testAPI()">Test API Call</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080';
+        
+        async function testAPI() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Testing...</h3>';
+            
+            try {
+                console.log('Making request to:', `${API_BASE}/admin/llm/providers/groq/models`);
+                
+                const response = await fetch(`${API_BASE}/admin/llm/providers/groq/models`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                results.innerHTML = `
+                    <h3>✅ SUCCESS</h3>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Models found:</strong> ${data.models.length}</p>
+                    <p><strong>First 5 models:</strong></p>
+                    <ul>
+                        ${data.models.slice(0, 5).map(model => `<li>${model}</li>`).join('')}
+                    </ul>
+                `;
+                
+            } catch (error) {
+                console.error('API Error:', error);
+                results.innerHTML = `
+                    <h3>❌ ERROR</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p><strong>Full error:</strong> ${JSON.stringify(error)}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
