@@ -49,6 +49,13 @@ class TestConnectionRequest(BaseModel):
     litellm_provider_name: str | None = None
 
 
+class TestModelConnectionRequest(BaseModel):
+    """Request for testing connection to a specific model for a provider"""
+    provider_id: str
+    model_name: str
+    configuration: dict[str, str] = {}
+
+
 class LLMProviderDescriptor(BaseModel):
     """A descriptor for an LLM provider that can be safely viewed by
     non-admin users. Used when giving a list of available LLMs."""

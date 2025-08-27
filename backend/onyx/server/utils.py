@@ -42,7 +42,9 @@ def get_json_line(
     return json.dumps(json_dict, cls=encoder) + "\n"
 
 
-def mask_string(sensitive_str: str) -> str:
+def mask_string(sensitive_str: str | None) -> str:
+    if not sensitive_str:
+        return ""
     return "****...**" + sensitive_str[-4:]
 
 

@@ -203,6 +203,38 @@ export class ProviderTemplateAPI {
   }
 
   /**
+   * Test connection to specific model for a provider
+   */
+  static async testModelConnection(request: {
+    provider_id: string;
+    model_name: string;
+    configuration: Record<string, string>;
+  }): Promise<{
+    success: boolean;
+    error?: string;
+    message?: string;
+    model_info?: {
+      model_name: string;
+      provider: string;
+      supports_image_input?: boolean;
+    };
+  }> {
+    const response = await fetch('/api/admin/llm/test-model-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to test model connection: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  /**
    * Delete provider configuration
    */
   static async deleteProviderConfiguration(providerId: string): Promise<void> {

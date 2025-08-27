@@ -16,12 +16,12 @@ import {
   AlertCircle,
   Loader2,
   Settings,
-  Zap,
+  Plus,
   TestTube
 } from 'lucide-react';
 import { ProviderTemplate } from '@/lib/types/providerTemplates';
 import { ProviderConfigurationForm } from './ProviderConfigurationForm';
-import { ModelDiscovery } from './ModelDiscovery';
+import { ModelAdd } from './ModelAdd';
 import { cn } from '@/lib/utils';
 
 interface ConfigurationWizardProps {
@@ -66,9 +66,9 @@ const WIZARD_STEPS: WizardStep[] = [
   },
   {
     id: 'models',
-    title: 'Model Discovery',
-    description: 'Select available models',
-    icon: Zap,
+    title: 'Add Models',
+    description: 'Add and verify your models',
+    icon: Plus,
   },
 ];
 
@@ -420,18 +420,18 @@ export const ConfigurationWizard: React.FC<ConfigurationWizardProps> = ({
           {state.currentStep === 2 && (
             <div className="space-y-6">
               {state.testResult?.success === true ? (
-                <ModelDiscovery
+                <ModelAdd
                   provider={provider}
                   apiConfig={state.configuration}
                   selectedModels={state.selectedModels}
-                  onModelsSelected={handleModelSelectionChange}
+                  onModelsChanged={handleModelSelectionChange}
                 />
               ) : (
                 <div className="text-center">
                   <AlertCircle className="h-12 w-12 mx-auto mb-4 text-neutral-400" />
                   <h3 className="text-lg font-medium mb-2">Connection Test Required</h3>
                   <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
-                    Please complete the connection test in the previous step before selecting models.
+                    Please complete the connection test in the previous step before adding models.
                   </p>
                 </div>
               )}

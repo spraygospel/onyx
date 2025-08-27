@@ -36,6 +36,7 @@ from onyx.server.manage.llm.models import LLMProviderView
 from onyx.server.manage.llm.models import ModelConfigurationUpsertRequest
 from onyx.server.manage.llm.models import TestLLMRequest
 from onyx.server.manage.llm.models import TestConnectionRequest
+from onyx.server.manage.llm.models import TestModelConnectionRequest
 from onyx.server.manage.llm.models import VisionProviderResponse
 from onyx.utils.logger import setup_logger
 from onyx.utils.threadpool_concurrency import run_functions_tuples_in_parallel
@@ -391,6 +392,77 @@ def test_provider_connection(
             status_code=500, 
             detail=f"Unexpected error: {str(e)}"
         )
+
+
+@admin_router.post("/test-model-connection")
+def test_model_connection_endpoint(
+    test_request: TestModelConnectionRequest,
+    _: User | None = Depends(current_admin_user),
+) -> dict[str, Any]:
+    """Test connection to specific model for a provider."""
+    
+    try:
+        logger.info(f"Testing model connection: provider={test_request.provider_id}, model={test_request.model_name}")
+        
+        # Get the provider descriptor
+        all_providers = fetch_available_well_known_llms_with_templates()
+        provider = None
+        for p in all_providers:
+            if p.name == test_request.provider_id:
+                provider = p
+                break
+        
+        if not provider:
+            raise HTTPException(status_code=404, detail=f"Provider '{test_request.provider_id}' not found")
+        
+        # Extract configuration from request
+        api_key = test_request.configuration.get("api_key")
+        api_base = test_request.configuration.get("api_base")
+        api_version = test_request.configuration.get("api_version")
+        deployment_name = test_request.configuration.get("deployment_name")
+        
+        # Create custom_config dict from remaining configuration
+        reserved_keys = {"api_key", "api_base", "api_version", "deployment_name"}
+        custom_config = {k: v for k, v in test_request.configuration.items() if k not in reserved_keys}
+        
+        # Test the specific model using the existing get_llm infrastructure
+        # Use a dummy max_input_tokens value for testing
+        max_input_tokens = -1
+        
+        llm = get_llm(
+            provider=provider.litellm_provider_name or test_request.provider_id,
+            model=test_request.model_name,
+            api_key=api_key,
+            api_base=api_base,
+            api_version=api_version,
+            custom_config=custom_config,
+            deployment_name=deployment_name,
+            max_input_tokens=max_input_tokens,
+        )
+        
+        # Test the LLM with a simple call
+        test_llm(llm)
+        
+        return {
+            "success": True,
+            "message": f"Successfully connected to model '{test_request.model_name}' from provider '{test_request.provider_id}'",
+            "model_info": {
+                "model_name": test_request.model_name,
+                "provider": test_request.provider_id,
+                "supports_image_input": model_supports_image_input(
+                    model_name=test_request.model_name,
+                    model_provider=provider.litellm_provider_name or test_request.provider_id,
+                )
+            }
+        }
+        
+    except Exception as e:
+        logger.exception(f"Model connection test failed for {test_request.provider_id}/{test_request.model_name}")
+        error_msg = litellm_exception_to_error_msg(e)
+        return {
+            "success": False,
+            "error": f"Failed to connect to model '{test_request.model_name}': {error_msg}"
+        }
 
 
 @admin_router.get("/providers/{provider_id}/models")
