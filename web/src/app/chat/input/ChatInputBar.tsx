@@ -3,7 +3,7 @@ import { FiPlusCircle, FiPlus, FiX, FiFilter } from "react-icons/fi";
 import { FiLoader } from "react-icons/fi";
 import { ChatInputOption } from "./ChatInputOption";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
-import LLMPopover from "./LLMPopover";
+import LLMPopoverSimple from "./LLMPopoverSimple";
 import { InputPrompt } from "@/app/chat/interfaces";
 
 import { FilterManager, getDisplayNameForModel, LlmManager } from "@/lib/hooks";
@@ -846,11 +846,9 @@ export function ChatInputBar({
                   tooltipContent={"Upload files and attach user files"}
                 />
 
-                <LLMPopover
+                <LLMPopoverSimple
                   llmProviders={llmProviders}
                   llmManager={llmManager}
-                  requiresImageGeneration={false}
-                  currentAssistant={selectedAssistant}
                 />
 
                 {retrievalEnabled && (

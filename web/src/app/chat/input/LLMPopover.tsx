@@ -11,12 +11,7 @@ import { getProviderIcon } from "@/app/admin/configuration/llm/utils";
 import { MinimalPersonaSnapshot } from "@/app/admin/assistants/interfaces";
 import { LlmManager } from "@/lib/hooks";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { ClientTooltip } from "@/components/ui/ClientTooltip";
 import { FiAlertTriangle } from "react-icons/fi";
 
 import { Slider } from "@/components/ui/slider";
@@ -43,7 +38,6 @@ export default function LLMPopover({
   onSelect,
   currentModelName,
 }: LLMPopoverProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const { user } = useUser();
 
   const [localTemperature, setLocalTemperature] = useState(
@@ -74,27 +68,23 @@ export default function LLMPopover({
 
   // Memoize trigger content to prevent rerendering
   const triggerContent = useMemo(
-    trigger
-      ? () => trigger
-      : () => (
-          <button
-            className="dark:text-[#fff] text-[#000] focus:outline-none"
-            data-testid="llm-popover-trigger"
-          >
-            <ChatInputOption
-              minimize
-              toggle
-              flexPriority="stiff"
-              name={getDisplayNameForModel(llmManager.currentLlm.modelName)}
-              Icon={getProviderIcon(
-                llmManager.currentLlm.provider,
-                llmManager.currentLlm.modelName
-              )}
-              tooltipContent="Switch models"
-            />
-          </button>
-        ),
-    [llmManager.currentLlm]
+    () =>
+      trigger ? (
+        trigger
+      ) : (
+        <ChatInputOption
+          minimize
+          toggle
+          flexPriority="stiff"
+          name={getDisplayNameForModel(llmManager.currentLlm.modelName)}
+          Icon={getProviderIcon(
+            llmManager.currentLlm.provider,
+            llmManager.currentLlm.modelName
+          )}
+          tooltipContent="Switch models"
+        />
+      ),
+    [llmManager.currentLlm, trigger]
   );
 
   const llmOptionsToChooseFrom = useMemo(
@@ -120,11 +110,14 @@ export default function LLMPopover({
   );
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>{triggerContent}</PopoverTrigger>
+    <Popover>
+      <PopoverTrigger asChild aria-label="Select LLM model">{triggerContent}</PopoverTrigger>
       <PopoverContent
+        side="bottom"
         align="start"
-        className="w-64 p-1 bg-background border border-background-200 rounded-md shadow-lg flex flex-col"
+        sideOffset={5}
+        avoidCollisions={false}
+        className="w-64 p-1 bg-background border border-background-200 rounded-md shadow-lg flex flex-col z-50"
       >
         <div className="flex-grow max-h-[300px] default-scrollbar overflow-y-auto">
           {llmOptionsToChooseFrom.map(
@@ -149,14 +142,13 @@ export default function LLMPopover({
                         name,
                       } as LlmDescriptor);
                       onSelect?.(modelName);
-                      setIsOpen(false);
                     }}
                   >
                     {icon({
                       size: 16,
                       className: "flex-none my-auto text-black",
                     })}
-                    <TruncatedText text={getDisplayNameForModel(modelName)} />
+                    <TruncatedText text={`${getDisplayNameForModel(modelName)} (via ${name})`} />
                     {(() => {
                       if (
                         currentAssistant?.llm_model_version_override ===
@@ -175,23 +167,22 @@ export default function LLMPopover({
                         modelName,
                         provider
                       ) && (
-                        <TooltipProvider>
-                          <Tooltip delayDuration={0}>
-                            <TooltipTrigger className="my-auto flex items-center ml-auto">
-                              <FiAlertTriangle
-                                className="text-alert"
-                                size={16}
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">
-                                This LLM is not vision-capable and cannot
-                                process image files present in your chat
-                                session.
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <ClientTooltip
+                          className="my-auto flex items-center ml-auto"
+                          content={
+                            <p className="text-xs">
+                              This LLM is not vision-capable and cannot
+                              process image files present in your chat
+                              session.
+                            </p>
+                          }
+                        >
+                          <FiAlertTriangle
+                            className="text-alert"
+                            size={16}
+                            data-testid="vision-warning"
+                          />
+                        </ClientTooltip>
                       )}
                   </button>
                 );
