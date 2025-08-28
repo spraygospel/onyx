@@ -77,7 +77,7 @@ uvicorn model_server.main:app --reload --port 9001
 ```bash
 source venv/bin/activate
 cd backend
-python ./scripts/dev_run_background_jobs.py OR source .env.dev && python ./scripts/dev_run_background_jobs.py
+python ./scripts/dev_run_background_jobs.py
 ```
 
 **Terminal 3 - API Server:**
@@ -127,7 +127,7 @@ npm run dev
 **Port conflicts:**
 ```bash
 # Check what's using a port
-netstat -tlnp 2>/dev/null | grep -E ':8080|:9000' || lsof -i :8080,9000 2>/dev/null
+netstat -tlnp 2>/dev/null | grep -E ':8080|:9001|:9000' || lsof -i :8080,9001,9000 2>/dev/null
 netstat -tulpn 2>/dev/null | grep :9000
 
 # Kill process using port

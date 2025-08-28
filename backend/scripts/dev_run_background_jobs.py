@@ -1,3 +1,4 @@
+import os
 import subprocess
 import threading
 
@@ -16,6 +17,33 @@ def monitor_process(process_name: str, process: subprocess.Popen) -> None:
 
 
 def run_jobs() -> None:
+    # Load environment variables from .env.dev if exists
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env.dev')
+    if os.path.exists(env_path):
+        print(f"Loading environment from: {env_path}")
+        with open(env_path, 'r') as f:
+            loaded_count = 0
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value
+                    loaded_count += 1
+        print(f"✅ Loaded {loaded_count} environment variables")
+        
+        # Verify critical S3 variables are loaded
+        s3_vars = ['S3_AWS_ACCESS_KEY_ID', 'S3_AWS_SECRET_ACCESS_KEY', 'S3_ENDPOINT_URL', 'S3_FILE_STORE_BUCKET_NAME']
+        missing_vars = [var for var in s3_vars if not os.environ.get(var)]
+        if missing_vars:
+            print(f"❌ WARNING: Missing S3 variables: {missing_vars}")
+        else:
+            print("✅ All critical S3 environment variables loaded")
+    else:
+        print(f"⚠️  Environment file not found: {env_path}")
+    
+    # Get current environment with loaded variables
+    current_env = os.environ.copy()
+    
     # command setup
     cmd_worker_primary = [
         "celery",
@@ -132,21 +160,24 @@ def run_jobs() -> None:
         "--loglevel=INFO",
     ]
 
-    # spawn processes
+    # spawn processes with environment inheritance
+    print("🚀 Starting Celery workers with environment inheritance...")
+    
     worker_primary_process = subprocess.Popen(
-        cmd_worker_primary, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        cmd_worker_primary, env=current_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     )
 
     worker_light_process = subprocess.Popen(
-        cmd_worker_light, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        cmd_worker_light, env=current_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     )
 
     worker_heavy_process = subprocess.Popen(
-        cmd_worker_heavy, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        cmd_worker_heavy, env=current_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     )
 
     worker_docprocessing_process = subprocess.Popen(
         cmd_worker_docprocessing,
+        env=current_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -154,6 +185,7 @@ def run_jobs() -> None:
 
     worker_user_files_indexing_process = subprocess.Popen(
         cmd_worker_user_files_indexing,
+        env=current_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -161,6 +193,7 @@ def run_jobs() -> None:
 
     worker_monitoring_process = subprocess.Popen(
         cmd_worker_monitoring,
+        env=current_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -168,6 +201,7 @@ def run_jobs() -> None:
 
     worker_kg_processing_process = subprocess.Popen(
         cmd_worker_kg_processing,
+        env=current_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -175,14 +209,17 @@ def run_jobs() -> None:
 
     worker_docfetching_process = subprocess.Popen(
         cmd_worker_docfetching,
+        env=current_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
     )
 
     beat_process = subprocess.Popen(
-        cmd_beat, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        cmd_beat, env=current_env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
     )
+
+    print("✅ All workers started with environment inheritance")
 
     # monitor threads
     worker_primary_thread = threading.Thread(
