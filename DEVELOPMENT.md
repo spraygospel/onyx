@@ -77,7 +77,7 @@ uvicorn model_server.main:app --reload --port 9001
 ```bash
 source venv/bin/activate
 cd backend
-python ./scripts/dev_run_background_jobs.py
+python ./scripts/dev_run_background_jobs.py OR source .env.dev && python ./scripts/dev_run_background_jobs.py
 ```
 
 **Terminal 3 - API Server:**
