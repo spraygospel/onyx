@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Hoverable } from "@/components/Hoverable";
 import { IconType } from "react-icons";
 import { FiRefreshCw } from "react-icons/fi";
-import LLMPopover from "./input/LLMPopover";
+import LLMPopoverSimple from "./input/LLMPopoverSimple";
 
 export default function RegenerateOption({
   selectedAssistant,
@@ -33,7 +33,7 @@ export default function RegenerateOption({
   };
 
   return (
-    <LLMPopover
+    <LLMPopoverSimple
       llmManager={llmManager}
       llmProviders={llmProviders}
       requiresImageGeneration={false}
@@ -56,11 +56,14 @@ export default function RegenerateOption({
         const { name, provider, modelName } = parseLlmDescriptor(
           value as string
         );
-        regenerate({
-          name: name,
+        
+        const regenerateDescriptor = {
+          name: provider, // Use provider field as name for backend compatibility
           provider: provider,
           modelName: modelName,
-        });
+        };
+        
+        regenerate(regenerateDescriptor);
       }}
     />
   );

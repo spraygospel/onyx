@@ -139,7 +139,7 @@ export default function LLMPopover({
                       llmManager.updateCurrentLlm({
                         modelName,
                         provider,
-                        name,
+                        name: provider, // Use technical provider name instead of display name
                       } as LlmDescriptor);
                       onSelect?.(modelName);
                     }}

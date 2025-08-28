@@ -164,11 +164,20 @@ def fetch_existing_llm_providers(
 def fetch_existing_llm_provider(
     name: str, db_session: Session
 ) -> LLMProviderModel | None:
+    # First try to find by name (display name)
     provider_model = db_session.scalar(
         select(LLMProviderModel)
         .where(LLMProviderModel.name == name)
         .options(selectinload(LLMProviderModel.model_configurations))
     )
+    
+    # If not found by name, try to find by provider field (technical name)
+    if not provider_model:
+        provider_model = db_session.scalar(
+            select(LLMProviderModel)
+            .where(LLMProviderModel.provider == name)
+            .options(selectinload(LLMProviderModel.model_configurations))
+        )
 
     return provider_model
 
