@@ -118,6 +118,11 @@ export const useModelDiscovery = (
           throw new Error('Provider configuration required for dynamic model fetching');
         }
 
+        if (!provider.id) {
+          console.error('[useModelDiscovery] Provider missing ID:', provider.name);
+          throw new Error(`Provider ${provider.name} has no ID`);
+        }
+        
         response = forceRefresh 
           ? await ProviderTemplateAPI.refreshProviderModels(provider.id)
           : await ProviderTemplateAPI.fetchProviderModels(provider.id);
@@ -229,7 +234,7 @@ export const useModelDiscovery = (
     return modelsToGroup.reduce((acc, model) => {
       const category = model.category;
       if (!acc[category]) acc[category] = [];
-      acc[category].push(model);
+      acc[category]?.push(model);
       return acc;
     }, {} as Record<string, ModelInfo[]>);
   }, [state.models]);

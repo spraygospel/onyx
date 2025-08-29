@@ -43,6 +43,12 @@ export const useProviderTemplates = (): UseProviderTemplatesResult => {
       
       await Promise.allSettled(
         templates.map(async (provider) => {
+          // Critical: Provider must have ID
+          if (!provider.id) {
+            console.error('[useProviderTemplates] Provider missing ID:', provider.name);
+            return; // Skip this provider
+          }
+          
           try {
             // Try to get configuration to see if provider is configured
             await ProviderTemplateAPI.getProviderConfiguration(provider.id);
@@ -117,7 +123,7 @@ export const useProviderTemplates = (): UseProviderTemplatesResult => {
       await ProviderTemplateAPI.saveProviderConfiguration(providerId, configuration);
       
       // Mark as configured
-      setConfiguredProviders(prev => new Set([...prev, providerId]));
+      setConfiguredProviders(prev => new Set(Array.from(prev).concat(providerId)));
       
       // Fetch models if provider uses dynamic fetching
       const provider = providers.find(p => p.id === providerId);

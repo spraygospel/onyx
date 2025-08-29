@@ -67,6 +67,12 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   const handleRefreshModels = async () => {
     if (!onRefreshModels || refreshing) return;
     
+    if (!template.id) {
+      console.error('[ProviderCard] Cannot refresh - provider missing ID:', template.name);
+      alert('Cannot refresh models: Provider configuration is incomplete');
+      return;
+    }
+    
     setRefreshing(true);
     try {
       await onRefreshModels(template.id);
@@ -76,6 +82,12 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
   };
 
   const handleConfigure = () => {
+    if (!template.id) {
+      console.error('[ProviderCard] Cannot configure - provider missing ID:', template.name);
+      alert('Cannot configure provider: Missing configuration data');
+      return;
+    }
+    
     if (onConfigure) {
       onConfigure(template.id);
     }

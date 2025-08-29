@@ -9,5 +9,5 @@ export { useProviderTemplates, useProviderConfiguration } from './useProviderTem
 export { useModelDiscovery } from './useModelDiscovery';
 
 // Other hooks
-export { default as useTokenRefresh } from './useTokenRefresh';
+export { useTokenRefresh } from './useTokenRefresh';
 export { default as usePaginatedFetch } from './usePaginatedFetch';

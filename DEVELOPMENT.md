@@ -148,3 +148,20 @@ kill [8080 process ID] [9000 process ID]
 ```
 
 For detailed setup, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## mematikan docker compose
+
+```bash
+cd deployment/docker_compose
+docker compose -f docker-compose.dev.yml -p onyx-stack down
+```
+
+## check production ready
+
+```bash
+cd web
+npm run lint
+npx tsc --noEmit # jalankan sampai tidak ada error lagi
+npm run build
+npm run start -- -p 9000
+```

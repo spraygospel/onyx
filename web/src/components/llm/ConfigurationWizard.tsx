@@ -261,7 +261,7 @@ export const ConfigurationWizard: React.FC<ConfigurationWizardProps> = ({
 
   const currentStepData = WIZARD_STEPS[state.currentStep];
   const currentStepError = state.stepErrors[state.currentStep];
-  const IconComponent = currentStepData.icon;
+  const IconComponent = currentStepData?.icon;
 
   return (
     <Card className={cn('w-full max-w-4xl', className)}>
@@ -269,7 +269,7 @@ export const ConfigurationWizard: React.FC<ConfigurationWizardProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <IconComponent className="h-5 w-5" />
+              {IconComponent && <IconComponent className="h-5 w-5" />}
               Setup {provider.name}
             </CardTitle>
             <CardDescription>

@@ -128,7 +128,7 @@ export const ProviderConfigurationForm: React.FC<ProviderConfigurationFormProps>
 
   const handleFieldChange = (key: string, value: string) => {
     const config = template.config_schema[key];
-    const error = validateField(key, value, config);
+    const error = config ? validateField(key, value, config) : "";
 
     setFormState(prev => ({
       ...prev,

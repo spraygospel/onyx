@@ -60,7 +60,7 @@ export const ProviderGrid: React.FC<ProviderGridProps> = ({
       const searchTerm = filters.search.toLowerCase();
       filtered = filtered.filter(provider => 
         provider.name.toLowerCase().includes(searchTerm) ||
-        provider.description.toLowerCase().includes(searchTerm) ||
+        provider.description?.toLowerCase().includes(searchTerm) ||
         provider.litellm_provider_name.toLowerCase().includes(searchTerm)
       );
     }
@@ -83,9 +83,13 @@ export const ProviderGrid: React.FC<ProviderGridProps> = ({
     // Configuration status filter
     if (filters.configured && filters.configured !== 'all') {
       const isConfiguredFilter = filters.configured === 'configured';
-      filtered = filtered.filter(provider => 
-        configuredProviders.has(provider.id) === isConfiguredFilter
-      );
+      filtered = filtered.filter(provider => {
+        if (!provider.id) {
+          console.warn('[ProviderGrid] Provider missing ID, excluding from filter:', provider.name);
+          return false; // Exclude providers without ID
+        }
+        return configuredProviders.has(provider.id) === isConfiguredFilter;
+      });
     }
 
     setFilteredProviders(filtered);
@@ -279,10 +283,10 @@ export const ProviderGrid: React.FC<ProviderGridProps> = ({
             <ProviderCard
               key={provider.id}
               template={provider}
-              models={providerModels[provider.id]}
+              models={provider.id ? providerModels[provider.id] : undefined}
               onConfigure={onConfigure}
               onRefreshModels={onRefreshModels}
-              configured={configuredProviders.has(provider.id)}
+              configured={provider.id ? configuredProviders.has(provider.id) : false}
               className={viewMode === 'list' ? 'max-w-none' : undefined}
             />
           ))}

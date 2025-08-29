@@ -34,6 +34,8 @@ export interface WellKnownLLMProviderDescriptor {
   model_configurations: ModelConfiguration[];
   default_model: string | null;
   default_fast_model: string | null;
+  model_endpoint?: string;
+  litellm_provider_name?: string;
   is_public: boolean;
   groups: number[];
 }

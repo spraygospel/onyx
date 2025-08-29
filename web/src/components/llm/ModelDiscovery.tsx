@@ -227,7 +227,7 @@ export const ModelDiscovery: React.FC<ModelDiscoveryProps> = ({
   const groupedModels = filteredModels.reduce((acc, model) => {
     const category = model.category || 'popular';
     if (!acc[category]) acc[category] = [];
-    acc[category].push(model);
+    acc[category]?.push(model);
     return acc;
   }, {} as Record<string, ModelInfo[]>);
 
