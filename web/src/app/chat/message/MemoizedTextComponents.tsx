@@ -177,7 +177,8 @@ export const MemoizedLink = memo(
     }
 
     const handleMouseDown = () => {
-      let url = href || rest.children?.toString();
+      // Priority order: document link, href, children text
+      let url = document?.link || href || rest.children?.toString();
 
       if (url && !url.includes("://")) {
         // Only add https:// if the URL doesn't already have a protocol

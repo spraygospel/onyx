@@ -1,0 +1,46 @@
+<svg width="401" height="400" viewBox="0 0 401 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Notebook OSS - Simple Paper Logo -->
+  <g transform="translate(200.5, 200)">
+    
+    <!-- Main notepad -->
+    <rect x="-70" y="-120" width="140" height="180" fill="white" rx="6" stroke="white" stroke-width="2" opacity="0.95"/>
+    
+    <!-- Spiral binding top -->
+    <rect x="-75" y="-130" width="150" height="12" fill="white" opacity="0.8" rx="6"/>
+    
+    <!-- Spiral holes -->
+    <circle cx="-50" cy="-124" r="3" fill="white" opacity="0.6"/>
+    <circle cx="-20" cy="-124" r="3" fill="white" opacity="0.6"/>
+    <circle cx="10" cy="-124" r="3" fill="white" opacity="0.6"/>
+    <circle cx="40" cy="-124" r="3" fill="white" opacity="0.6"/>
+    
+    <!-- Paper lines -->
+    <line x1="-50" y1="-90" x2="50" y2="-90" stroke="white" stroke-width="1" opacity="0.5"/>
+    <line x1="-50" y1="-60" x2="50" y2="-60" stroke="white" stroke-width="1" opacity="0.5"/>
+    <line x1="-50" y1="-30" x2="50" y2="-30" stroke="white" stroke-width="1" opacity="0.5"/>
+    <line x1="-50" y1="0" x2="50" y2="0" stroke="white" stroke-width="1" opacity="0.5"/>
+    <line x1="-50" y1="30" x2="50" y2="30" stroke="white" stroke-width="1" opacity="0.5"/>
+    
+    <!-- Left margin -->
+    <line x1="-35" y1="-110" x2="-35" y2="50" stroke="white" stroke-width="1.5" opacity="0.7"/>
+    
+    <!-- Page stack effect -->
+    <rect x="-65" y="-115" width="140" height="180" fill="white" opacity="0.4" rx="6"/>
+    <rect x="-60" y="-110" width="140" height="180" fill="white" opacity="0.3" rx="6"/>
+    
+    <!-- Written content simulation -->
+    <rect x="-30" y="-85" width="35" height="2.5" fill="white" opacity="0.8" rx="1"/>
+    <rect x="-30" y="-55" width="50" height="2.5" fill="white" opacity="0.8" rx="1"/>
+    <rect x="-30" y="-25" width="40" height="2.5" fill="white" opacity="0.8" rx="1"/>
+    
+    <!-- Corner fold detail -->
+    <path d="M55,-120 L70,-120 L70,-105 L55,-90 Z" fill="white" opacity="0.6"/>
+    <path d="M55,-120 L55,-90 L70,-105 Z" fill="white" opacity="0.4"/>
+    
+    <!-- Small "OSS" text placeholder -->
+    <rect x="20" y="25" width="8" height="2" fill="white" opacity="0.6" rx="1"/>
+    <rect x="30" y="25" width="8" height="2" fill="white" opacity="0.6" rx="1"/>
+    <rect x="40" y="25" width="8" height="2" fill="white" opacity="0.6" rx="1"/>
+    
+  </g>
+</svg>
