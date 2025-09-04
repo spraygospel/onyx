@@ -227,7 +227,7 @@ services:
       - api_server
       - web_server
     ports:
-      - "80:80"
+      - "9000:80"
       - "443:443"
     volumes:
       - ../data/nginx:/etc/nginx/conf.d

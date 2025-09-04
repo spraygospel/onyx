@@ -79,10 +79,6 @@ chmod +x init-letsencrypt.sh
 docker compose -f docker-compose.prod.yml -p onyx-stack up -d --build --force-recreate
 ```
 
-**Or pull from registry (if no local changes):**
-```bash
-docker compose -f docker-compose.prod.yml -p onyx-stack up -d --pull always --force-recreate
-```
 
 > **📝 Note:** Building from source ensures all your local changes are included. Initial build may take 15-30 minutes.
 
